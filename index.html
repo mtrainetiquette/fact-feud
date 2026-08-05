@@ -94,6 +94,16 @@
     <!-- ============ SIDEBAR ============ -->
     <div id="sidebar">
       <div class="tile quiet">
+        <h3 style="margin:.1rem 0 .4rem">Quick players</h3>
+        <p class="muted" style="font-size:.78rem; margin-top:0">No roster needed — just name the two players.</p>
+        <label style="margin-top:.3rem">Left player</label>
+        <input id="qNameL" placeholder="e.g. Priya" style="width:100%">
+        <label>Right player</label>
+        <input id="qNameR" placeholder="e.g. Devon" style="width:100%">
+        <div style="margin-top:.6rem"><button id="qSetBtn" style="width:100%">Set players</button></div>
+      </div>
+
+      <div class="tile quiet">
         <h3 style="margin:.1rem 0 .4rem">Class roster</h3>
         <select id="rosterSelect" style="width:100%"><option value="">— choose roster —</option></select>
         <div style="margin:.7rem 0 .3rem"><button id="callBtn" style="width:100%">🎤 Call a random student</button></div>
@@ -208,6 +218,8 @@
     for (const side of ['L','R']) {
       const p = S.players[side];
       $('name'+side).textContent = p ? p.name : (side==='L' ? 'Left player' : 'Right player');
+      const qInput = $('qName'+side);
+      if (document.activeElement !== qInput && p && p.key === 'quick'+side) qInput.value = p.name;
       $('score'+side).textContent = p ? (S.points[p.key] || 0) : 0;
       $('card'+side).classList.toggle('hot', S.buzz === side && S.phase !== 'reveal');
     }
@@ -238,16 +250,14 @@
         <p class="tolhint">Shortcut: press Left/Right Shift on this keyboard</p>`;
     } else if (q && (S.phase === 'guess1' || S.phase === 'guess2')) {
       const who = S.phase === 'guess1' ? S.buzz : (S.buzz === 'L' ? 'R' : 'L');
-      const { lo, hi } = FF.band(q);
       const stealNote = S.phase === 'guess2'
-        ? `<p class="muted">${esc(pname(S.buzz))} guessed ${FF.fmtVal(S.g1, q.unit)} — outside the band. ${esc(pname(who))} must land <b>strictly closer</b> to steal.</p>` : '';
+        ? `<p class="muted">${esc(pname(S.buzz))}'s guess of ${FF.fmtVal(S.g1, q.unit)} wasn't close enough. ${esc(pname(who))} must land <b>strictly closer</b> to steal.</p>` : '';
       pb.innerHTML = `${stealNote}
         <div class="row" style="justify-content:center">
           <b style="font-size:1.1rem">${esc(pname(who))}'s guess:</b>
           <input id="guessInput" inputmode="decimal" autocomplete="off" style="width:9rem; font-size:1.2rem" placeholder="${q.unit === 'dollars' ? '$' : q.unit === 'percent' ? '%' : '#'}">
           <button class="big" id="guessGo">Lock it in</button>
-        </div>
-        <p class="tolhint">Teacher-only: accepted band is ${FF.fmtVal(lo, q.unit)} – ${FF.fmtVal(hi, q.unit)} (${q.tolerance_mode === 'relative' ? '±'+FF.fmtNum(q.tolerance_value)+'%' : '±'+FF.fmtVal(q.tolerance_value, q.unit)})</p>`;
+        </div>`;
       const inp = $('guessInput');
       inp.focus();
       const go = () => {
@@ -333,6 +343,13 @@
 
   // ---------- wiring ----------
   $('gameSelect').addEventListener('change', e => { S.gameId = e.target.value; startRound(0); });
+  $('qSetBtn').addEventListener('click', () => {
+    const nL = $('qNameL').value.trim(), nR = $('qNameR').value.trim();
+    if (!nL || !nR) { FF.toast('Enter both names', true); return; }
+    S.players.L = { key: 'quickL', name: nL };
+    S.players.R = { key: 'quickR', name: nR };
+    save(); renderAll(); FF.toast('Players set');
+  });
   $('rosterSelect').addEventListener('change', e => { S.rosterId = e.target.value; S.absent=[]; S.called=[]; S.calledUp=null; save(); renderAll(); });
   $('callBtn').addEventListener('click', callRandom);
   $('assignL').addEventListener('click', () => { S.players.L = S.calledUp; save(); renderAll(); });
