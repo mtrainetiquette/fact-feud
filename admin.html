@@ -1,0 +1,477 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Fact Feud — Admin</title>
+<link rel="stylesheet" href="factfeud.css">
+<style>
+  nav.tabs { display:flex; gap:.4rem; flex-wrap:wrap; margin:1rem 0; }
+  nav.tabs button { background:transparent; color:var(--pale); border-color:var(--soft); box-shadow:none; }
+  nav.tabs button.on { background:var(--gold-grad); color:var(--navy-black); border-color:var(--navy-black); }
+  section.pane { display:none; } section.pane.on { display:block; }
+  .editor { position:sticky; top:1rem; }
+  #gate { max-width:26rem; margin:12vh auto; text-align:center; }
+  .qmove { display:flex; gap:.25rem; }
+  .qmove button { padding:.05rem .45rem; font-size:.8rem; }
+</style>
+</head>
+<body>
+<div class="ff-shell">
+  <div class="ff-topbar">
+    <a href="play.html" style="text-decoration:none"><div class="ff-badge small"><span class="line">Fact</span><span class="line">Feud</span></div></a>
+    <h1 style="margin:0; font-size:1.3rem">Admin</h1>
+    <span class="spacer"></span>
+    <a class="btn" href="play.html" style="text-decoration:none">◀ Back to game</a>
+  </div>
+
+  <!-- ---------- password gate ---------- -->
+  <div class="tile" id="gate">
+    <h2 id="gateTitle">Teacher access</h2>
+    <p class="muted" id="gateMsg"></p>
+    <input type="password" id="gatePwd" placeholder="Password" style="width:100%">
+    <input type="password" id="gatePwd2" placeholder="Repeat password" style="width:100%; margin-top:.5rem" hidden>
+    <div style="margin-top:.8rem"><button class="big" id="gateBtn">Unlock</button></div>
+  </div>
+
+  <div id="app" hidden>
+    <nav class="tabs">
+      <button data-tab="questions" class="on">Questions</button>
+      <button data-tab="categories">Categories</button>
+      <button data-tab="topics">Topics</button>
+      <button data-tab="games">Games</button>
+      <button data-tab="rosters">Rosters</button>
+      <button data-tab="settings">Settings</button>
+    </nav>
+
+    <!-- QUESTIONS -->
+    <section class="pane on" id="pane-questions">
+      <div class="grid2">
+        <div>
+          <div class="row">
+            <select id="qFilterCat"><option value="">All categories</option></select>
+            <input id="qSearch" placeholder="Search prompts…" style="flex:1">
+            <button id="qNew">＋ New</button>
+          </div>
+          <table class="list" id="qTable"><thead><tr><th>Prompt</th><th>Answer</th><th>Category</th></tr></thead><tbody></tbody></table>
+        </div>
+        <div class="tile quiet editor" id="qEditor" hidden>
+          <h3 id="qEdTitle" style="margin:.1rem 0">Edit question</h3>
+          <label>Category</label><select id="qCat" style="width:100%"></select>
+          <label>Prompt</label><textarea id="qPrompt"></textarea>
+          <div class="row">
+            <div><label>Answer value</label><input id="qVal" inputmode="decimal" style="width:8rem"></div>
+            <div><label>Unit</label><select id="qUnit"><option>percent</option><option>dollars</option><option>persons</option><option>minutes</option><option>years</option><option>count</option></select></div>
+          </div>
+          <div class="row">
+            <div><label>Tolerance</label><select id="qTolMode"><option value="relative">± % of answer</option><option value="absolute">± fixed amount</option></select></div>
+            <div><label>Value</label><input id="qTolVal" inputmode="decimal" style="width:6rem"></div>
+          </div>
+          <p class="muted" style="font-size:.78rem">Tip: for small answers (under ~10), use a fixed tolerance — a relative band gets brutally tight.</p>
+          <label>Full citation (shown to students on reveal)</label><textarea id="qSrc"></textarea>
+          <label>Source URL</label><input id="qUrl" style="width:100%">
+          <label>Teaching note (optional)</label><textarea id="qNote"></textarea>
+          <div class="row" style="margin-top:.8rem">
+            <button id="qSave">Save question</button>
+            <button class="danger" id="qDelete">Delete</button>
+            <button class="ghost" id="qCancel">Close</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- CATEGORIES -->
+    <section class="pane" id="pane-categories">
+      <div class="grid2">
+        <div>
+          <button id="cNew">＋ New category</button>
+          <table class="list" id="cTable"><thead><tr><th>Name</th><th>Questions</th></tr></thead><tbody></tbody></table>
+        </div>
+        <div class="tile quiet editor" id="cEditor" hidden>
+          <h3 style="margin:.1rem 0">Edit category</h3>
+          <label>Name</label><input id="cName" style="width:100%">
+          <label>Description</label><textarea id="cDesc"></textarea>
+          <div class="row" style="margin-top:.8rem">
+            <button id="cSave">Save</button><button class="danger" id="cDelete">Delete</button><button class="ghost" id="cCancel">Close</button>
+          </div>
+          <p class="muted" style="font-size:.78rem">Deleting a category deletes its questions.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- TOPICS -->
+    <section class="pane" id="pane-topics">
+      <div class="row"><input id="tName" placeholder="New topic name"><button id="tAdd">＋ Add topic</button></div>
+      <table class="list" id="tTable"><thead><tr><th>Topic</th><th></th></tr></thead><tbody></tbody></table>
+    </section>
+
+    <!-- GAMES -->
+    <section class="pane" id="pane-games">
+      <div class="grid2">
+        <div>
+          <button id="gNew">＋ New game</button>
+          <table class="list" id="gTable"><thead><tr><th>Game</th><th>Rounds</th><th>Topics</th></tr></thead><tbody></tbody></table>
+        </div>
+        <div class="tile quiet editor" id="gEditor" hidden>
+          <h3 style="margin:.1rem 0">Edit game</h3>
+          <label>Name</label><input id="gName" style="width:100%">
+          <label>Description</label><textarea id="gDesc"></textarea>
+          <label>Topic tags</label><div id="gTopics"></div>
+          <label>Rounds (in order)</label><div id="gQList"></div>
+          <label>Add a question</label>
+          <div class="row"><select id="gAddSel" style="flex:1"></select><button id="gAddBtn">Add</button></div>
+          <div class="row" style="margin-top:.8rem">
+            <button id="gSave">Save game</button><button class="danger" id="gDelete">Delete</button><button class="ghost" id="gCancel">Close</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ROSTERS -->
+    <section class="pane" id="pane-rosters">
+      <div class="grid2">
+        <div>
+          <button id="rNew">＋ New roster</button>
+          <table class="list" id="rTable"><thead><tr><th>Roster</th><th>Students</th></tr></thead><tbody></tbody></table>
+          <p class="muted" style="font-size:.8rem">Privacy: use first name + last initial. Rosters store names only — never scores or results.</p>
+        </div>
+        <div class="tile quiet editor" id="rEditor" hidden>
+          <h3 style="margin:.1rem 0">Edit roster</h3>
+          <label>Class name</label><input id="rName" style="width:100%">
+          <label>Students — one per line</label><textarea id="rStudents" style="min-height:12rem"></textarea>
+          <div class="row" style="margin-top:.8rem">
+            <button id="rSave">Save roster</button><button class="danger" id="rDelete">Delete</button><button class="ghost" id="rCancel">Close</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- SETTINGS -->
+    <section class="pane" id="pane-settings">
+      <div class="tile quiet" style="max-width:30rem">
+        <h3 style="margin:.1rem 0">Back up the library</h3>
+        <p class="muted" style="font-size:.85rem">Downloads every topic, category, question, game, and roster as JSON. Do this occasionally — the password gate stops casual edits, not a determined student with devtools.</p>
+        <button id="exportBtn">⬇ Export library to JSON</button>
+      </div>
+      <div class="tile quiet" style="max-width:30rem; margin-top:1rem">
+        <h3 style="margin:.1rem 0">Change password</h3>
+        <label>Current password</label><input type="password" id="pwOld" style="width:100%">
+        <label>New password</label><input type="password" id="pwNew" style="width:100%">
+        <div style="margin-top:.8rem"><button id="pwBtn">Change password</button></div>
+      </div>
+    </section>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="config.js"></script>
+<script>
+(() => {
+  const $ = id => document.getElementById(id);
+  const sb = FF.sb;
+  const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  const die = e => { FF.toast('Save failed: ' + (e.message || e), true); throw e; };
+
+  let D = { topics:[], categories:[], questions:[], games:[], rosters:[] };
+  let sel = { q:null, c:null, g:null, r:null };
+  let gDraft = null; // {topicIds:[], questionIds:[]}
+
+  // ================= PASSWORD GATE =================
+  async function initGate() {
+    let salt = null, hash = null;
+    try {
+      const { data, error } = await sb.from('ff_app_settings').select('*').in('key', ['admin_salt','admin_hash']);
+      if (error) throw error;
+      for (const row of data) { if (row.key === 'admin_salt') salt = row.value; if (row.key === 'admin_hash') hash = row.value; }
+    } catch (e) { $('gateMsg').textContent = 'Cannot reach the database. Admin needs a connection.'; return; }
+
+    const firstRun = !salt || !hash;
+    $('gateTitle').textContent = firstRun ? 'Create a teacher password' : 'Teacher access';
+    $('gateMsg').textContent = firstRun ? 'No password is set yet. Choose one — you\'ll use it on this page only.' : '';
+    $('gatePwd2').hidden = !firstRun;
+
+    if (!firstRun && FF.store.get('ff_admin_unlock') === hash) { unlock(); return; }
+
+    $('gateBtn').onclick = async () => {
+      const pwd = $('gatePwd').value;
+      if (!pwd) return;
+      if (firstRun) {
+        if (pwd !== $('gatePwd2').value) { FF.toast('Passwords don\'t match', true); return; }
+        const newSalt = FF.randomSaltHex();
+        const newHash = await FF.sha256Hex(newSalt + pwd);
+        const { error } = await sb.from('ff_app_settings').upsert([
+          { key:'admin_salt', value:newSalt }, { key:'admin_hash', value:newHash }]);
+        if (error) { die(error); return; }
+        FF.store.set('ff_admin_unlock', newHash); unlock();
+      } else {
+        const tryHash = await FF.sha256Hex(salt + pwd);
+        if (tryHash === hash) { FF.store.set('ff_admin_unlock', hash); unlock(); }
+        else FF.toast('Wrong password', true);
+      }
+    };
+    $('gatePwd').addEventListener('keydown', e => { if (e.key === 'Enter') $('gateBtn').click(); });
+  }
+  function unlock() { $('gate').hidden = true; $('app').hidden = false; loadAll(); }
+
+  $('pwBtn').addEventListener('click', async () => {
+    const { data } = await sb.from('ff_app_settings').select('*').in('key', ['admin_salt','admin_hash']);
+    const salt = data.find(r => r.key==='admin_salt')?.value, hash = data.find(r => r.key==='admin_hash')?.value;
+    if (await FF.sha256Hex(salt + $('pwOld').value) !== hash) { FF.toast('Current password is wrong', true); return; }
+    const newSalt = FF.randomSaltHex(), newHash = await FF.sha256Hex(newSalt + $('pwNew').value);
+    const { error } = await sb.from('ff_app_settings').upsert([{key:'admin_salt',value:newSalt},{key:'admin_hash',value:newHash}]);
+    if (error) die(error);
+    FF.store.set('ff_admin_unlock', newHash);
+    $('pwOld').value = $('pwNew').value = '';
+    FF.toast('Password changed');
+  });
+
+  // ================= LOAD =================
+  async function loadAll() {
+    const [t,c,q,g,r] = await Promise.all([
+      sb.from('ff_topics').select('*').order('name'),
+      sb.from('ff_categories').select('*').order('sort_order'),
+      sb.from('ff_questions').select('*').order('created_at'),
+      sb.from('ff_games').select('*, ff_game_topics(topic_id), ff_game_questions(question_id, sort_order)').order('name'),
+      sb.from('ff_rosters').select('*, ff_students(id, display_name, sort_order)').order('name'),
+    ]);
+    const err = t.error||c.error||q.error||g.error||r.error;
+    if (err) { FF.toast('Load failed: '+err.message, true); return; }
+    D = { topics:t.data, categories:c.data, questions:q.data, games:g.data, rosters:r.data };
+    renderAll();
+  }
+  const catName = id => D.categories.find(c => c.id === id)?.name || '?';
+  const qById = id => D.questions.find(q => q.id === id);
+
+  function renderAll(){ renderQ(); renderC(); renderT(); renderG(); renderR(); }
+
+  // ================= QUESTIONS =================
+  function renderQ() {
+    $('qFilterCat').innerHTML = '<option value="">All categories</option>' +
+      D.categories.map(c => `<option value="${c.id}">${esc(c.name)}</option>`).join('');
+    $('qCat').innerHTML = D.categories.map(c => `<option value="${c.id}">${esc(c.name)}</option>`).join('');
+    drawQTable();
+  }
+  function drawQTable() {
+    const f = $('qFilterCat').value, s = $('qSearch').value.toLowerCase();
+    const rows = D.questions.filter(q => (!f || q.category_id === f) && (!s || q.prompt.toLowerCase().includes(s)));
+    $('qTable').querySelector('tbody').innerHTML = rows.map(q =>
+      `<tr data-id="${q.id}" class="${sel.q===q.id?'sel':''}"><td>${esc(q.prompt)}</td><td>${FF.fmtVal(q.answer_value, q.unit)}</td><td>${esc(catName(q.category_id))}</td></tr>`).join('');
+    $('qTable').querySelectorAll('tr[data-id]').forEach(tr => tr.addEventListener('click', () => editQ(tr.dataset.id)));
+  }
+  $('qFilterCat').addEventListener('change', drawQTable);
+  $('qSearch').addEventListener('input', drawQTable);
+  function editQ(id) {
+    sel.q = id; const q = id ? qById(id) : null;
+    $('qEditor').hidden = false;
+    $('qEdTitle').textContent = q ? 'Edit question' : 'New question';
+    $('qCat').value = q?.category_id || D.categories[0]?.id || '';
+    $('qPrompt').value = q?.prompt || '';
+    $('qVal').value = q?.answer_value ?? '';
+    $('qUnit').value = q?.unit || 'percent';
+    $('qTolMode').value = q?.tolerance_mode || 'relative';
+    $('qTolVal').value = q?.tolerance_value ?? 10;
+    $('qSrc').value = q?.source_label || '';
+    $('qUrl').value = q?.source_url || '';
+    $('qNote').value = q?.teaching_note || '';
+    $('qDelete').hidden = !q;
+    drawQTable();
+  }
+  $('qNew').addEventListener('click', () => editQ(null));
+  $('qCancel').addEventListener('click', () => { sel.q = null; $('qEditor').hidden = true; drawQTable(); });
+  $('qSave').addEventListener('click', async () => {
+    const val = FF.parseGuess($('qVal').value), tol = FF.parseGuess($('qTolVal').value);
+    if (!$('qPrompt').value.trim() || val === null || tol === null) { FF.toast('Prompt, answer, and tolerance are required', true); return; }
+    const rec = { category_id:$('qCat').value, prompt:$('qPrompt').value.trim(), answer_value:val,
+      unit:$('qUnit').value, tolerance_mode:$('qTolMode').value, tolerance_value:tol,
+      source_label:$('qSrc').value.trim() || null, source_url:$('qUrl').value.trim() || null,
+      teaching_note:$('qNote').value.trim() || null, updated_at:new Date().toISOString() };
+    const { error } = sel.q
+      ? await sb.from('ff_questions').update(rec).eq('id', sel.q)
+      : await sb.from('ff_questions').insert(rec);
+    if (error) die(error);
+    FF.toast('Question saved'); await loadAll(); $('qEditor').hidden = true; sel.q = null;
+  });
+  $('qDelete').addEventListener('click', async () => {
+    if (!confirm('Delete this question? It will be removed from any games that use it.')) return;
+    const { error } = await sb.from('ff_questions').delete().eq('id', sel.q);
+    if (error) die(error);
+    FF.toast('Question deleted'); sel.q = null; $('qEditor').hidden = true; await loadAll();
+  });
+
+  // ================= CATEGORIES =================
+  function renderC() {
+    $('cTable').querySelector('tbody').innerHTML = D.categories.map(c =>
+      `<tr data-id="${c.id}" class="${sel.c===c.id?'sel':''}"><td>${esc(c.name)}</td><td>${D.questions.filter(q=>q.category_id===c.id).length}</td></tr>`).join('');
+    $('cTable').querySelectorAll('tr').forEach(tr => tr.addEventListener('click', () => {
+      sel.c = tr.dataset.id; const c = D.categories.find(x => x.id === sel.c);
+      $('cEditor').hidden = false; $('cName').value = c.name; $('cDesc').value = c.description || ''; renderC();
+    }));
+  }
+  $('cNew').addEventListener('click', () => { sel.c = null; $('cEditor').hidden = false; $('cName').value = ''; $('cDesc').value = ''; });
+  $('cCancel').addEventListener('click', () => { sel.c = null; $('cEditor').hidden = true; renderC(); });
+  $('cSave').addEventListener('click', async () => {
+    if (!$('cName').value.trim()) return;
+    const rec = { name:$('cName').value.trim(), description:$('cDesc').value.trim() || null };
+    const { error } = sel.c
+      ? await sb.from('ff_categories').update(rec).eq('id', sel.c)
+      : await sb.from('ff_categories').insert({ ...rec, sort_order: D.categories.length + 1 });
+    if (error) die(error);
+    FF.toast('Category saved'); $('cEditor').hidden = true; sel.c = null; await loadAll();
+  });
+  $('cDelete').addEventListener('click', async () => {
+    if (!sel.c || !confirm('Delete this category AND all of its questions?')) return;
+    const { error } = await sb.from('ff_categories').delete().eq('id', sel.c);
+    if (error) die(error);
+    FF.toast('Category deleted'); sel.c = null; $('cEditor').hidden = true; await loadAll();
+  });
+
+  // ================= TOPICS =================
+  function renderT() {
+    $('tTable').querySelector('tbody').innerHTML = D.topics.map(t =>
+      `<tr><td>${esc(t.name)}</td><td style="text-align:right"><button class="danger" data-del="${t.id}">Delete</button></td></tr>`).join('');
+    $('tTable').querySelectorAll('[data-del]').forEach(b => b.addEventListener('click', async () => {
+      if (!confirm('Delete this topic tag? Games keep their other tags.')) return;
+      const { error } = await sb.from('ff_topics').delete().eq('id', b.dataset.del);
+      if (error) die(error); await loadAll();
+    }));
+  }
+  $('tAdd').addEventListener('click', async () => {
+    const name = $('tName').value.trim(); if (!name) return;
+    const { error } = await sb.from('ff_topics').insert({ name });
+    if (error) die(error);
+    $('tName').value = ''; await loadAll();
+  });
+
+  // ================= GAMES =================
+  function renderG() {
+    $('gTable').querySelector('tbody').innerHTML = D.games.map(g => {
+      const tags = (g.ff_game_topics||[]).map(gt => D.topics.find(t=>t.id===gt.topic_id)?.name).filter(Boolean);
+      return `<tr data-id="${g.id}" class="${sel.g===g.id?'sel':''}"><td>${esc(g.name)}</td><td>${(g.ff_game_questions||[]).length}</td><td>${tags.map(t=>`<span class="pill">${esc(t)}</span>`).join('')}</td></tr>`;
+    }).join('');
+    $('gTable').querySelectorAll('tr[data-id]').forEach(tr => tr.addEventListener('click', () => editG(tr.dataset.id)));
+  }
+  function editG(id) {
+    sel.g = id; const g = id ? D.games.find(x => x.id === id) : null;
+    gDraft = {
+      topicIds: g ? (g.ff_game_topics||[]).map(x => x.topic_id) : [],
+      questionIds: g ? (g.ff_game_questions||[]).sort((a,b)=>a.sort_order-b.sort_order).map(x => x.question_id) : [],
+    };
+    $('gEditor').hidden = false;
+    $('gName').value = g?.name || ''; $('gDesc').value = g?.description || '';
+    $('gDelete').hidden = !g;
+    drawGDraft(); renderG();
+  }
+  function drawGDraft() {
+    $('gTopics').innerHTML = D.topics.map(t =>
+      `<label style="display:inline-flex; align-items:center; gap:.3rem; margin-right:.9rem; font-weight:400">
+        <input type="checkbox" data-topic="${t.id}" ${gDraft.topicIds.includes(t.id)?'checked':''}> ${esc(t.name)}</label>`).join('') || '<span class="muted">No topics yet.</span>';
+    $('gTopics').querySelectorAll('[data-topic]').forEach(cb => cb.addEventListener('change', () => {
+      const id = cb.dataset.topic, i = gDraft.topicIds.indexOf(id);
+      cb.checked ? (i<0 && gDraft.topicIds.push(id)) : (i>=0 && gDraft.topicIds.splice(i,1));
+    }));
+    $('gQList').innerHTML = gDraft.questionIds.map((qid, i) => {
+      const q = qById(qid); if (!q) return '';
+      return `<div class="stu"><span class="nm">${i+1}. ${esc(q.prompt)}</span>
+        <span class="qmove">
+          <button data-up="${i}" ${i===0?'disabled':''}>↑</button>
+          <button data-dn="${i}" ${i===gDraft.questionIds.length-1?'disabled':''}>↓</button>
+          <button class="danger" data-rm="${i}">✕</button>
+        </span></div>`;
+    }).join('') || '<p class="muted">No rounds yet — add questions below.</p>';
+    $('gQList').querySelectorAll('[data-up]').forEach(b => b.addEventListener('click', () => { const i=+b.dataset.up; [gDraft.questionIds[i-1],gDraft.questionIds[i]]=[gDraft.questionIds[i],gDraft.questionIds[i-1]]; drawGDraft(); }));
+    $('gQList').querySelectorAll('[data-dn]').forEach(b => b.addEventListener('click', () => { const i=+b.dataset.dn; [gDraft.questionIds[i+1],gDraft.questionIds[i]]=[gDraft.questionIds[i],gDraft.questionIds[i+1]]; drawGDraft(); }));
+    $('gQList').querySelectorAll('[data-rm]').forEach(b => b.addEventListener('click', () => { gDraft.questionIds.splice(+b.dataset.rm,1); drawGDraft(); }));
+    $('gAddSel').innerHTML = D.questions.filter(q => !gDraft.questionIds.includes(q.id))
+      .map(q => `<option value="${q.id}">[${esc(catName(q.category_id))}] ${esc(q.prompt)}</option>`).join('');
+  }
+  $('gAddBtn').addEventListener('click', () => { const id = $('gAddSel').value; if (id) { gDraft.questionIds.push(id); drawGDraft(); } });
+  $('gNew').addEventListener('click', () => editG(null));
+  $('gCancel').addEventListener('click', () => { sel.g = null; $('gEditor').hidden = true; renderG(); });
+  $('gSave').addEventListener('click', async () => {
+    const name = $('gName').value.trim(); if (!name) { FF.toast('Name the game', true); return; }
+    let gid = sel.g;
+    if (gid) {
+      const { error } = await sb.from('ff_games').update({ name, description:$('gDesc').value.trim() || null }).eq('id', gid);
+      if (error) die(error);
+    } else {
+      const { data, error } = await sb.from('ff_games').insert({ name, description:$('gDesc').value.trim() || null }).select().single();
+      if (error) die(error); gid = data.id;
+    }
+    let e1 = (await sb.from('ff_game_topics').delete().eq('game_id', gid)).error; if (e1) die(e1);
+    let e2 = (await sb.from('ff_game_questions').delete().eq('game_id', gid)).error; if (e2) die(e2);
+    if (gDraft.topicIds.length) {
+      const { error } = await sb.from('ff_game_topics').insert(gDraft.topicIds.map(t => ({ game_id:gid, topic_id:t })));
+      if (error) die(error);
+    }
+    if (gDraft.questionIds.length) {
+      const { error } = await sb.from('ff_game_questions').insert(gDraft.questionIds.map((q,i) => ({ game_id:gid, question_id:q, sort_order:i+1 })));
+      if (error) die(error);
+    }
+    FF.toast('Game saved — hit ↻ Sync on the Play page to pick it up');
+    sel.g = null; $('gEditor').hidden = true; await loadAll();
+  });
+  $('gDelete').addEventListener('click', async () => {
+    if (!confirm('Delete this game? The questions themselves stay in the library.')) return;
+    const { error } = await sb.from('ff_games').delete().eq('id', sel.g);
+    if (error) die(error);
+    FF.toast('Game deleted'); sel.g = null; $('gEditor').hidden = true; await loadAll();
+  });
+
+  // ================= ROSTERS =================
+  function renderR() {
+    $('rTable').querySelector('tbody').innerHTML = D.rosters.map(r =>
+      `<tr data-id="${r.id}" class="${sel.r===r.id?'sel':''}"><td>${esc(r.name)}</td><td>${(r.ff_students||[]).length}</td></tr>`).join('');
+    $('rTable').querySelectorAll('tr[data-id]').forEach(tr => tr.addEventListener('click', () => {
+      sel.r = tr.dataset.id; const r = D.rosters.find(x => x.id === sel.r);
+      $('rEditor').hidden = false; $('rName').value = r.name;
+      $('rStudents').value = (r.ff_students||[]).sort((a,b)=>a.sort_order-b.sort_order).map(s => s.display_name).join('\n');
+      $('rDelete').hidden = false; renderR();
+    }));
+  }
+  $('rNew').addEventListener('click', () => { sel.r = null; $('rEditor').hidden = false; $('rName').value = ''; $('rStudents').value = ''; $('rDelete').hidden = true; });
+  $('rCancel').addEventListener('click', () => { sel.r = null; $('rEditor').hidden = true; renderR(); });
+  $('rSave').addEventListener('click', async () => {
+    const name = $('rName').value.trim(); if (!name) { FF.toast('Name the class', true); return; }
+    const names = $('rStudents').value.split('\n').map(s => s.trim()).filter(Boolean);
+    let rid = sel.r;
+    if (rid) {
+      let e = (await sb.from('ff_rosters').update({ name }).eq('id', rid)).error; if (e) die(e);
+      e = (await sb.from('ff_students').delete().eq('roster_id', rid)).error; if (e) die(e);
+    } else {
+      const { data, error } = await sb.from('ff_rosters').insert({ name }).select().single();
+      if (error) die(error); rid = data.id;
+    }
+    if (names.length) {
+      const { error } = await sb.from('ff_students').insert(names.map((n,i) => ({ roster_id:rid, display_name:n, sort_order:i+1 })));
+      if (error) die(error);
+    }
+    FF.toast('Roster saved'); sel.r = null; $('rEditor').hidden = true; await loadAll();
+  });
+  $('rDelete').addEventListener('click', async () => {
+    if (!confirm('Delete this roster and its student names?')) return;
+    const { error } = await sb.from('ff_rosters').delete().eq('id', sel.r);
+    if (error) die(error);
+    FF.toast('Roster deleted'); sel.r = null; $('rEditor').hidden = true; await loadAll();
+  });
+
+  // ================= EXPORT =================
+  $('exportBtn').addEventListener('click', () => {
+    const blob = new Blob([JSON.stringify(D, null, 2)], { type:'application/json' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = `factfeud-library-${new Date().toISOString().slice(0,10)}.json`;
+    a.click(); URL.revokeObjectURL(a.href);
+    FF.toast('Library exported');
+  });
+
+  // ================= TABS =================
+  document.querySelectorAll('nav.tabs button').forEach(b => b.addEventListener('click', () => {
+    document.querySelectorAll('nav.tabs button').forEach(x => x.classList.toggle('on', x === b));
+    document.querySelectorAll('section.pane').forEach(p => p.classList.toggle('on', p.id === 'pane-' + b.dataset.tab));
+  }));
+
+  initGate();
+})();
+</script>
+</body>
+</html>

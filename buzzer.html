@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Fact Feud — Buzzer</title>
+<link rel="stylesheet" href="factfeud.css">
+<style>
+  body { display:flex; flex-direction:column; align-items:center; justify-content:center;
+         min-height:100vh; gap:1.4rem; text-align:center; padding:1rem; }
+  #stage { font-family:var(--display); font-weight:700; line-height:1.05;
+           font-size:clamp(2.6rem, 9vw, 6.5rem);
+           background:var(--gold-grad); -webkit-background-clip:text; background-clip:text; color:transparent;
+           filter:drop-shadow(2px 3px 0 var(--navy-black)); min-height:2.2em; }
+  #sub { font-family:var(--util); color:var(--pale); font-size:1rem; min-height:1.4em; }
+  .keys { display:flex; gap:2.5rem; }
+  .keycap { font-family:var(--util); font-weight:700; font-size:1.1rem; color:var(--navy-black);
+            background:var(--gold-grad); border:2px solid var(--navy-black); border-radius:12px;
+            padding:.9rem 2rem; box-shadow:0 4px 0 var(--navy-black); transition:.12s; }
+  .keycap.won { transform:translateY(4px); box-shadow:0 0 0 var(--navy-black), 0 0 28px var(--amber); }
+  .keycap.dim { opacity:.35; }
+  body.armed #stage { animation:pulse 1.6s ease-in-out infinite; }
+  @keyframes pulse { 50% { filter:drop-shadow(2px 3px 0 var(--navy-black)) drop-shadow(0 0 18px rgba(250,174,28,.8)); } }
+</style>
+</head>
+<body class="armed">
+  <div class="ff-badge big"><span class="line">Fact</span><span class="line">Feud</span></div>
+  <div id="stage">READY</div>
+  <div id="sub">Left player: hold LEFT SHIFT side · Right player: RIGHT SHIFT side</div>
+  <div class="keys">
+    <div class="keycap" id="capL">⇧ LEFT SHIFT</div>
+    <div class="keycap" id="capR">RIGHT SHIFT ⇧</div>
+  </div>
+  <button class="big" id="resetBtn">Reset (Space)</button>
+
+<script>
+(() => {
+  const stage = document.getElementById('stage');
+  const sub = document.getElementById('sub');
+  const capL = document.getElementById('capL');
+  const capR = document.getElementById('capR');
+  let winner = null, tWin = 0;
+
+  function reset() {
+    winner = null; tWin = 0;
+    stage.textContent = 'READY';
+    sub.textContent = 'Left player: hold LEFT SHIFT side · Right player: RIGHT SHIFT side';
+    capL.className = capR.className = 'keycap';
+    document.body.classList.add('armed');
+  }
+
+  function buzz(side) {
+    const now = performance.now();
+    if (winner === null) {
+      winner = side; tWin = now;
+      document.body.classList.remove('armed');
+      stage.textContent = side === 'L' ? '◀ LEFT!' : 'RIGHT! ▶';
+      sub.textContent = 'Buzzed first';
+      (side === 'L' ? capL : capR).classList.add('won');
+      (side === 'L' ? capR : capL).classList.add('dim');
+    } else if (winner !== side) {
+      // second press while locked: show the margin, once
+      if (!sub.dataset.gap) {
+        sub.dataset.gap = '1';
+        sub.textContent = `Buzzed first by ${Math.round(now - tWin)} ms`;
+      }
+    }
+  }
+
+  document.addEventListener('keydown', (e) => {
+    if (e.repeat) return;
+    if (e.code === 'ShiftLeft')  { e.preventDefault(); buzz('L'); }
+    if (e.code === 'ShiftRight') { e.preventDefault(); buzz('R'); }
+    if (e.code === 'Space')      { e.preventDefault(); delete sub.dataset.gap; reset(); }
+  });
+  document.getElementById('resetBtn').addEventListener('click', () => { delete sub.dataset.gap; reset(); });
+})();
+</script>
+</body>
+</html>
