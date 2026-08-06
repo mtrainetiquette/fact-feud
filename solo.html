@@ -19,7 +19,7 @@
     background:var(--amber); border-radius:99px; padding:.2rem .7rem; font-weight:700; }
   body.offline #offlineFlag { display:inline-block; }
   #progress { font-family:var(--util); font-size:.78rem; color:var(--soft); }
-  #finalWrap { display:flex; flex-direction:column; gap:.8rem; align-items:center; }
+  #finalWrap:not([hidden]) { display:flex; flex-direction:column; gap:.8rem; align-items:center; }
   #finalScore { font-family:var(--display); font-size:3rem; font-weight:700;
     background:var(--gold-grad); -webkit-background-clip:text; background-clip:text; color:transparent; }
 </style>
@@ -73,6 +73,7 @@
           <h2 style="margin:0">Questions complete!</h2>
           <div id="finalScore">0</div>
           <p class="muted" id="finalDetail"></p>
+          <p class="muted" id="topForGame" style="font-size:.9rem; min-height:1.2em"></p>
           <div class="row" id="saveRow" style="opacity:0; transition:opacity .5s">
             <input id="saveName" placeholder="Your name for the leaderboard" style="width:16rem">
             <button class="big" id="saveScoreBtn">Save score</button>
@@ -94,7 +95,7 @@
           <h3 style="margin:.1rem 0 .4rem">Leaderboard</h3>
           <button class="ghost" id="boardRefresh" style="padding:.2rem .6rem; font-size:.78rem">↻</button>
         </div>
-        <table class="board" id="boardTable"><thead><tr><th>#</th><th>Name</th><th>Score</th><th>Game</th></tr></thead><tbody></tbody></table>
+        <table class="board" id="boardTable"><thead><tr><th>#</th><th>Name</th><th>Score</th><th>Question Set</th></tr></thead><tbody></tbody></table>
         <p class="muted" id="boardEmpty" style="font-size:.8rem" hidden>No scores yet — be the first!</p>
       </div>
     </div>
@@ -190,7 +191,8 @@
   }
 
   function renderAll() {
-    const g = game(), q = question();
+    const g = game();
+    const q = S.phase === 'idle' ? null : question();
     const done = S.phase === 'done';
     $('boardTile').style.display = '';
     $('finalWrap').hidden = !done;
@@ -262,6 +264,16 @@
     renderBoard();
   }
 
+  async function loadTopForGame(gameId) {
+    if (!FF.sb || !gameId) return;
+    const { data, error } = await FF.sb.from('ff_highscores')
+      .select('player_name,score').eq('game_id', gameId).order('score', { ascending:false }).limit(1);
+    if (error) return;
+    $('topForGame').textContent = (data && data.length)
+      ? `Top score for this Question Set: ${data[0].score} (${data[0].player_name})`
+      : 'Be the first to save a score for this Question Set!';
+  }
+
   let revealAnimated = false;
   function renderFinal() {
     stopTimer();
@@ -278,6 +290,7 @@
       return;
     }
     revealAnimated = true;
+    if (g) loadTopForGame(g.id);
     $('finalScore').textContent = '0';
     $('saveRow').style.opacity = 0;
     const prefersStill = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -310,6 +323,7 @@
     if (!name) { FF.toast('Enter a name first', true); return; }
     if (!FF.sb) { FF.toast('No connection — can\'t save right now', true); return; }
     const g = game();
+    if (S.phase !== 'done' || !g) { FF.toast('Finish a Question Set before saving a score', true); return; }
     if (S.saved && S.savedId) {
       const { error } = await FF.sb.from('ff_highscores').update({ player_name: name }).eq('id', S.savedId);
       if (error) { FF.toast('Update failed: ' + error.message, true); return; }
@@ -318,12 +332,13 @@
       return;
     }
     const { data, error } = await FF.sb.from('ff_highscores').insert({
-      player_name: name, mode: 'solo', game_id: g?.id || null, game_name: g?.name || 'Unknown Question Set',
-      score: S.score, correct_count: S.correctCount, question_count: g?.questions.length || 0,
+      player_name: name, mode: 'solo', game_id: g.id, game_name: g.name,
+      score: S.score, correct_count: S.correctCount, question_count: g.questions.length,
     }).select().single();
     if (error) { FF.toast('Save failed: ' + error.message, true); return; }
     S.saved = true; S.savedId = data.id; S.savedName = name; save(); renderFinal();
     FF.toast('Score saved!');
+    loadTopForGame(g.id);
   }
 
   let boardCache = [];
