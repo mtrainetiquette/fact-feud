@@ -1,151 +1,408 @@
 <!doctype html>
-<html lang="en" class="ff-title-page">
+<html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Fact Feud</title>
+<title>Fact Feud — Solo</title>
 <link rel="stylesheet" href="factfeud.css">
 <style>
-  html.ff-title-page { font-size: 18px; }
-  body.ff-title-page {
-    background:
-      radial-gradient(circle, rgba(201,214,238,.08) 2px, transparent 2.6px) 0 0/28px 28px,
-      linear-gradient(180deg, rgba(13,19,48,.2) 0%, rgba(13,19,48,.55) 55%, rgba(13,19,48,.85) 100%),
-      url('https://raw.githubusercontent.com/mtrainetiquette/fact-feud/main/dico_harvey_3.png') center 20% / cover fixed;
-  }
-  .ff-shell { max-width: 760px; }
-  .modes { grid-template-columns: 1fr; max-width: 480px; margin: 1.4rem auto; }
-  .hero { background: var(--tile-grad); }
-  .hero::before { display: none; }
-  h2 { font-size: 1.7rem; text-shadow: 0 2px 10px rgba(0,0,0,.85); }
-  .rules-block { background: rgba(13,19,48,.6); border:1px solid rgba(77,91,140,.45);
-    border-radius:14px; padding:.2rem 1.2rem; margin-bottom:.8rem; }
-  .rules-block summary { font-size: 1.4rem; }
-  .rules-block .body { font-size: 1.08rem; line-height:1.65; }
-  .mode-card h3 { font-size: 1.35rem; }
-  .mode-card p, .mode-card ul { font-size: 1rem; }
-  .hero p.tag { font-size: 1.15rem; }
-  .suggest-form p.callout { color: var(--white); font-size: 1.15rem; }
-  .menu-links { display:flex; gap:.6rem; justify-content:center; flex-wrap:wrap; margin-top:1.2rem; }
-  .menu-links a.btn { text-decoration:none; }
+  .layout { display:grid; grid-template-columns:1fr 320px; gap:1.2rem; }
+  @media (max-width:980px){ .layout { grid-template-columns:1fr; } }
+  #board { display:flex; flex-direction:column; align-items:center; gap:1rem; text-align:center; }
+  #prompt { font-family:var(--display); font-weight:700; color:var(--white);
+    font-size:clamp(1.35rem, 3.2vw, 2.1rem); line-height:1.25; width:100%; }
+  #phasebox { width:100%; }
+  #verdict { font-family:var(--display); font-size:1.5rem; font-weight:700; min-height:1.2em; }
+  #verdict.good { color:#7fe2a3; } #verdict.bad { color:#ff9d90; }
+  #scoreStrip { font-family:var(--util); font-size:.9rem; color:var(--amber); }
+  #offlineFlag { display:none; font-family:var(--util); font-size:.72rem; color:var(--navy-black);
+    background:var(--amber); border-radius:99px; padding:.2rem .7rem; font-weight:700; }
+  body.offline #offlineFlag { display:inline-block; }
+  #progress { font-family:var(--util); font-size:.78rem; color:var(--soft); }
+  #finalWrap:not([hidden]) { display:flex; flex-direction:column; gap:.8rem; align-items:center; }
+  #finalScore { font-family:var(--display); font-size:3rem; font-weight:700;
+    background:var(--gold-grad); -webkit-background-clip:text; background-clip:text; color:transparent; }
 </style>
 </head>
-<body class="ff-title-page">
+<body>
 <div class="ff-shell">
-
-  <div class="hero" id="hero">
-    <div class="ff-badge big"><span class="line">Fact</span><span class="line">Feud</span></div>
-    <p class="tag">Guess the statistic. Beat the clock or beat the buzzer. Note some research. Practice citing sources.</p>
-    <div class="menu-links">
-      <a class="btn big" href="leaderboard.html">Leaderboard</a>
-      <a class="btn big" href="admin.html">Admin</a>
-      <a class="btn big" href="buzzer.html" target="_blank">Open buzzer ↗</a>
-    </div>
+  <div class="ff-topbar">
+    <a href="index.html" style="text-decoration:none"><div class="ff-badge small"><span class="line">Fact</span><span class="line">Feud</span></div></a>
+    <span class="eyebrow">Solo</span>
+    <select id="gameSelect"><option value="">— choose a Question Set —</option></select>
+    <span id="offlineFlag">OFFLINE · CACHED</span>
+    <span class="spacer"></span>
+    <button class="ghost" id="refreshBtn" title="Re-download games">↻ Sync</button>
+    <button class="danger" id="resetSessionBtn">Restart</button>
+    <a class="btn" href="leaderboard.html" style="text-decoration:none">Leaderboard</a>
+    <a class="btn" href="index.html" style="text-decoration:none">☰ Menu</a>
+    <a class="btn" href="admin.html" style="text-decoration:none">Admin</a>
   </div>
 
-  <h2>Pick how you're playing</h2>
-  <div class="modes">
-    <div class="tile mode-card">
-      <span class="eyebrow">1 player</span>
-      <h3>Solo</h3>
-      <p>Answer against the clock. Speed and accuracy both count toward your score.</p>
-      <ul>
-        <li>Full points for a fast, correct first guess</li>
-        <li>Miss once? One more try for half credit</li>
-        <li>Save your score to the leaderboard</li>
-      </ul>
-      <a class="btn go" href="solo.html">Play Solo ▶</a>
+  <div class="layout">
+    <div class="tile" id="boardTile">
+      <div id="board">
+        <div class="row" style="justify-content:space-between; width:100%">
+          <span class="eyebrow" id="catLabel">Fact Feud</span>
+          <span id="progress"></span>
+        </div>
+        <div id="prompt">Choose a Question Set in the dropdown above to begin.</div>
+        <div id="scoreStrip"></div>
+        <div class="muted" id="topForGameLive" style="font-size:.85rem; min-height:1.2em"></div>
+
+        <div class="timerwrap" id="timerWrap" hidden>
+          <div class="timerbar"><i id="timerFill" style="width:100%"></i></div>
+          <div class="timerlabel" id="timerLabel">0.0s</div>
+        </div>
+
+        <div id="phasebox"></div>
+
+        <div class="flip" id="flip" hidden>
+          <div class="inner"><div class="face front">?</div><div class="face back" id="answerFace"></div></div>
+        </div>
+        <div id="verdict"></div>
+        <div class="citation" id="citeBox" hidden>
+          <span class="cite-label">Source — cite it like this</span>
+          <p id="citeText"></p>
+        </div>
+        <div class="tile quiet" id="noteBox" hidden style="font-size:.92rem; width:100%"></div>
+
+        <div class="row" id="navRow" hidden>
+          <button class="big" id="nextBtn">Next round ▶</button>
+        </div>
+
+        <div id="finalWrap" hidden>
+          <h2 style="margin:0">Questions complete!</h2>
+          <div id="finalScore">0</div>
+          <p class="muted" id="finalDetail"></p>
+          <p class="muted" id="topForGame" style="font-size:.9rem; min-height:1.2em"></p>
+          <div class="row" id="saveRow" style="opacity:0; transition:opacity .5s">
+            <input id="saveName" placeholder="Your name for the leaderboard" style="width:16rem">
+            <button class="big" id="saveScoreBtn">Save score</button>
+          </div>
+          <p class="muted" id="saveStatus" style="font-size:.85rem; min-height:1.2em"></p>
+        </div>
+      </div>
     </div>
-    <div class="tile mode-card">
-      <span class="eyebrow">2 teams</span>
-      <h3>Team vs Team</h3>
-      <p>Two rosters face off. A new student from each team is called up for every single question.</p>
-      <ul>
-        <li>Points are tracked by team, not by student</li>
-        <li>Everyone gets a turn before anyone repeats</li>
-        <li>Good for full-class play with rotating spotlight</li>
-      </ul>
-      <a class="btn go" href="team.html">Play Team vs Team ▶</a>
-    </div>
-    <div class="tile mode-card">
-      <span class="eyebrow">2 players</span>
-      <h3>1v1 Duel</h3>
-      <p>Two students play head-to-head through a whole Question Set before a new pair steps up.</p>
-      <ul>
-        <li>Same two players face several questions in a row</li>
-        <li>Works with a saved class roster or quick-typed team lists</li>
-        <li>Best for a tournament-style bracket</li>
-      </ul>
-      <a class="btn go" href="duel.html">Play 1v1 Duel ▶</a>
+
+    <div id="sidebar">
+      <div class="tile quiet">
+        <h3 style="margin:.1rem 0 .4rem">How scoring works</h3>
+        <p class="muted" style="font-size:.85rem; margin:0">
+          Answer fast and land in the accepted range for full points. Miss, and you get one more guess for half credit — but the clock stops counting in your favor after that.
+        </p>
+      </div>
+      <div class="tile quiet">
+        <div class="row" style="justify-content:space-between">
+          <h3 style="margin:.1rem 0 .4rem">Leaderboard</h3>
+          <button class="ghost" id="boardRefresh" style="padding:.2rem .6rem; font-size:.78rem">↻</button>
+        </div>
+        <table class="board" id="boardTable"><thead><tr><th>#</th><th>Name</th><th>Score</th><th>Question Set</th></tr></thead><tbody></tbody></table>
+        <p class="muted" id="boardEmpty" style="font-size:.8rem" hidden>No scores yet — be the first!</p>
+      </div>
     </div>
   </div>
-
-  <details class="rules-block" open>
-    <summary>How scoring works, in every mode</summary>
-    <div class="body">
-      <p>Every question has a true numeric answer and an accepted range around it — usually ±10% of the true value, tighter or looser for a few tricky ones. You never see the exact range; that's on purpose.</p>
-      <ol>
-        <li><b>First guess:</b> land in the accepted range and you're correct.</li>
-        <li><b>Miss it?</b> The second guess (the other player in Duel/Team modes, or your own retry in Solo) has to land <b>strictly closer</b> to the true answer than the first guess did — or, in Solo, has to land inside the accepted range itself.</li>
-        <li><b>Ties</b> go to whoever guessed first.</li>
-      </ol>
-      <p>When the answer flips over, the source is shown right there — an actual citation, the way you'd cite it in your own work.</p>
-    </div>
-  </details>
-
-  <details class="rules-block">
-    <summary>Using the buzzer</summary>
-    <div class="body">
-      <p>Open <a href="buzzer.html" target="_blank">the buzzer page ↗</a> full-screen on a laptop the two players can both reach.</p>
-      <ul>
-        <li>Left player presses the <b>Left Shift</b> key, right player presses <b>Right Shift</b>.</li>
-        <li>Whoever presses first is declared the winner on screen, with the gap in milliseconds.</li>
-        <li>The buzzer locks after the first press. Press <b>Space</b> (or click Reset) to arm it for the next question.</li>
-        <li>The buzzer page runs entirely on its own — it doesn't need Wi-Fi and doesn't talk to the game screen. The teacher just reads the result and enters it.</li>
-      </ul>
-      <p class="muted">Solo mode doesn't use the buzzer — it's just you against the clock.</p>
-    </div>
-  </details>
-
-  <details class="rules-block">
-    <summary>Setting up players</summary>
-    <div class="body">
-      <p><b>Duel</b> and <b>Team vs Team</b> both let you type in names on the fly — no Admin setup required:</p>
-      <ul>
-        <li><b>Duel:</b> paste a list of names into "Team A" and "Team B," then call one random player from each team to face off for the whole Question Set.</li>
-        <li><b>Team vs Team:</b> same idea, but a fresh pair is called for every single question, so more students get a turn.</li>
-        <li>Both also work with a saved class roster from Admin, if you'd rather set that up once and reuse it every class.</li>
-      </ul>
-    </div>
-  </details>
-
-  <h2>Have a topic we should add?</h2>
-  <div class="tile quiet suggest-form">
-    <p class="callout" style="margin-top:0">Tell us what statistics or poll results you'd like to see as a category. This goes straight to the teacher's Admin page.</p>
-    <textarea id="suggMsg" placeholder="e.g. Something on climate opinion polling, or state-by-state comparisons..."></textarea>
-    <div class="row">
-      <input id="suggName" placeholder="Your name or class (optional)" style="flex:1">
-      <button id="suggSend">Send suggestion</button>
-    </div>
-  </div>
-
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="config.js"></script>
 <script>
 (() => {
-  document.getElementById('suggSend').addEventListener('click', async () => {
-    const msg = document.getElementById('suggMsg').value.trim();
-    const who = document.getElementById('suggName').value.trim();
-    if (!msg) { FF.toast('Write a suggestion first', true); return; }
-    if (!FF.sb) { FF.toast('No connection — try again later', true); return; }
-    const { error } = await FF.sb.from('ff_suggestions').insert({ message: msg, submitted_name: who || null });
-    if (error) { FF.toast('Couldn\'t send: ' + error.message, true); return; }
-    document.getElementById('suggMsg').value = '';
-    document.getElementById('suggName').value = '';
-    FF.toast('Sent — thanks!');
+  const $ = id => document.getElementById(id);
+  const CACHE_KEY = 'ff_content_v1', SESSION_KEY = 'ff_session_solo_v1';
+  const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+
+  let content = FF.store.get(CACHE_KEY, { games: [] });
+
+  function freshSession() {
+    return { gameId:'', qIndex:0, phase:'idle', g1:null, g2:null, verdict:null,
+             score:0, correctCount:0, startTime:0, saved:false, savedId:null, savedName:'', playerName:'',
+             roundQuestionIds:[] };
+  }
+  let S = FF.store.get(SESSION_KEY, null) || freshSession();
+  { const _f = freshSession(); for (const k in _f) if (!(k in S)) S[k] = _f[k]; }
+  const save = () => FF.store.set(SESSION_KEY, S);
+
+  async function sync(showToast) {
+    if (!FF.sb) return;
+    try {
+      const { data, error } = await FF.sb.from('ff_games')
+        .select('id,name,description,ff_game_topics(ff_topics(name)),ff_game_questions(sort_order,ff_questions(*,ff_categories(name)))')
+        .order('name');
+      if (error) throw error;
+      content = { games: data.map(x => ({ ...x,
+        questions: (x.ff_game_questions || []).sort((a,b)=>a.sort_order-b.sort_order).map(gq => gq.ff_questions).filter(Boolean) })),
+        fetchedAt: Date.now() };
+      FF.store.set(CACHE_KEY, content);
+      document.body.classList.remove('offline');
+      if (showToast) FF.toast('Synced with database');
+    } catch (e) {
+      document.body.classList.add('offline');
+      if (showToast) FF.toast('Offline — using cached content', true);
+    }
+    renderPickers(); renderAll();
+  }
+
+  const game = () => content.games.find(g => g.id === S.gameId) || null;
+  const roundLength = () => S.roundQuestionIds.length;
+  const question = () => {
+    const g = game(); if (!g || !S.roundQuestionIds.length) return null;
+    const id = S.roundQuestionIds[S.qIndex];
+    return g.questions.find(x => x.id === id) || null;
+  };
+  function shuffledSample(arr, n) {
+    const copy = arr.slice();
+    for (let i = copy.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [copy[i], copy[j]] = [copy[j], copy[i]];
+    }
+    return copy.slice(0, Math.min(n, copy.length));
+  }
+
+  // ---------- scoring ----------
+  function speedFactor(sec) {
+    if (sec <= 5) return 1;
+    if (sec >= 30) return 0.4;
+    return 1 - 0.6 * (sec - 5) / 25;
+  }
+  let tickHandle = null;
+  function startTimer() {
+    stopTimer();
+    S.startTime = Date.now(); save();
+    $('timerWrap').hidden = false;
+    tickHandle = setInterval(updateTimerUI, 100);
+    updateTimerUI();
+  }
+  function stopTimer() { if (tickHandle) clearInterval(tickHandle); tickHandle = null; }
+  function updateTimerUI() {
+    const el = (Date.now() - S.startTime) / 1000;
+    const pct = Math.max(0, 100 - Math.min(el, 30) / 30 * 100);
+    const fill = $('timerFill'); if (fill) fill.style.width = pct + '%';
+    const lbl = $('timerLabel'); if (lbl) lbl.textContent = el.toFixed(1) + 's';
+  }
+
+  function evaluate() {
+    const q = question(); if (!q) return;
+    const { lo, hi } = FF.band(q);
+    stopTimer();
+    if (S.g1 >= lo && S.g1 <= hi) {
+      const sec = (Date.now() - S.startTime) / 1000;
+      const pts = Math.round(100 * speedFactor(sec));
+      S.score += pts; S.correctCount++;
+      S.verdict = { cls:'good', text:`Points scored! +${pts}`, pts };
+    } else if (S.g2 !== null) {
+      if (S.g2 >= lo && S.g2 <= hi) {
+        S.score += 50; S.correctCount++;
+        S.verdict = { cls:'good', text:`Points scored! +50`, pts:50 };
+      } else {
+        S.verdict = { cls:'bad', text:`No points this time.`, pts:0 };
+      }
+    }
+    S.phase = 'reveal'; save(); renderAll();
+  }
+
+  function renderPickers() {
+    $('gameSelect').innerHTML = '<option value="">— choose a Question Set —</option>' +
+      content.games.map(g => `<option value="${g.id}" ${g.id===S.gameId?'selected':''}>${esc(g.name)}</option>`).join('');
+  }
+
+  function renderAll() {
+    const g = game();
+    const q = S.phase === 'idle' ? null : question();
+    const done = S.phase === 'done';
+    $('boardTile').style.display = '';
+    $('finalWrap').hidden = !done;
+    $('board').style.display = done ? 'none' : 'flex';
+    if (done) { renderFinal(); return; }
+
+    $('catLabel').textContent = q ? q.ff_categories.name : (g ? g.name : 'Fact Feud');
+    $('progress').textContent = g && S.phase !== 'idle' ? `Round ${Math.min(S.qIndex+1, roundLength())} of ${roundLength()}` : '';
+    $('prompt').textContent = q ? q.prompt
+      : g ? "Enter your name and hit Start when you're ready."
+      : 'Choose a Question Set in the dropdown above to begin.';
+    $('scoreStrip').textContent = g && S.phase !== 'idle' ? `Score: ${S.score} · Scored: ${S.correctCount}/${roundLength()}` : '';
+    $('timerWrap').hidden = !(q && S.phase === 'guess1');
+
+    const pb = $('phasebox'); pb.innerHTML = '';
+    const revealed = S.phase === 'reveal';
+    $('flip').hidden = !q || !(revealed || S.phase==='guess1' || S.phase==='guess2');
+    $('flip').classList.toggle('revealed', revealed);
+    $('navRow').hidden = !revealed;
+    $('verdict').textContent = revealed && S.verdict ? S.verdict.text : '';
+    $('verdict').className = revealed && S.verdict ? S.verdict.cls : '';
+    $('citeBox').hidden = !(revealed && q && q.source_label);
+    $('noteBox').hidden = !(revealed && q && q.teaching_note);
+    if (revealed && q) {
+      $('answerFace').textContent = FF.fmtVal(q.answer_value, q.unit);
+      if (q.source_label) $('citeText').innerHTML = esc(q.source_label)
+        .replace(/(https?:\/\/\S+)/, '<a href="$1" target="_blank" rel="noopener">$1</a>');
+      if (q.teaching_note) $('noteBox').textContent = '💡 ' + q.teaching_note;
+    }
+
+    if (g && S.phase === 'idle') {
+      pb.innerHTML = `
+        <div class="row" style="justify-content:center">
+          <input id="playerNameInput" placeholder="Your name" autocomplete="off" style="width:14rem" value="${esc(S.playerName || '')}">
+          <button class="big" id="startBtn">Start ▶</button>
+        </div>`;
+      const nameInp = $('playerNameInput');
+      const go = () => {
+        const name = nameInp.value.trim();
+        if (!name) { FF.toast('Enter your name first', true); return; }
+        S.playerName = name;
+        S.roundQuestionIds = shuffledSample(g.questions, 10).map(x => x.id);
+        startRound(0);
+      };
+      $('startBtn').addEventListener('click', go);
+      nameInp.addEventListener('keydown', e => { if (e.key === 'Enter') go(); });
+      if (!S.playerName) nameInp.focus();
+    } else if (q && (S.phase === 'guess1' || S.phase === 'guess2')) {
+      const stealNote = S.phase === 'guess2'
+        ? `<p class="muted">${FF.fmtVal(S.g1, q.unit)} wasn't close enough. One more try — half credit if you land it.</p>` : '';
+      pb.innerHTML = `${stealNote}
+        <div class="row" style="justify-content:center">
+          <input id="guessInput" inputmode="decimal" autocomplete="off" style="width:9rem; font-size:1.2rem" placeholder="${q.unit === 'dollars' ? '$' : q.unit === 'percent' ? '%' : '#'}">
+          <button class="big" id="guessGo">Lock it in</button>
+        </div>`;
+      const inp = $('guessInput'); inp.focus();
+      const go = () => {
+        const n = FF.parseGuess(inp.value);
+        if (n === null) { FF.toast('Enter a number', true); return; }
+        if (S.phase === 'guess1') {
+          S.g1 = n;
+          const b = FF.band(q);
+          if (n >= b.lo && n <= b.hi) { evaluate(); } else { S.phase = 'guess2'; save(); renderAll(); }
+        } else { S.g2 = n; evaluate(); }
+      };
+      $('guessGo').addEventListener('click', go);
+      inp.addEventListener('keydown', e => { if (e.key === 'Enter') go(); });
+      if (S.phase === 'guess1' && !tickHandle) startTimer();
+    }
+    renderBoard();
+  }
+
+  async function loadTopForGame(gameId) {
+    if (!FF.sb || !gameId) return;
+    const { data, error } = await FF.sb.from('ff_highscores')
+      .select('player_name,score').eq('game_id', gameId).order('score', { ascending:false }).limit(1);
+    if (error) return;
+    const text = (data && data.length)
+      ? `Top score for this Question Set: ${data[0].score} (${data[0].player_name})`
+      : 'Be the first to save a score for this Question Set!';
+    const live = $('topForGameLive'); if (live) live.textContent = text;
+    const end = $('topForGame'); if (end) end.textContent = text;
+  }
+
+  let revealAnimated = false;
+  function renderFinal() {
+    stopTimer();
+    const g = game();
+    $('finalDetail').textContent = g ? `${S.correctCount} of ${roundLength()} correct — ${g.name}` : '';
+    if (!$('saveName').value) $('saveName').value = S.savedName || S.playerName || '';
+    $('saveScoreBtn').textContent = S.saved ? 'Update name' : 'Save score';
+    $('saveStatus').textContent = S.saved ? `Saved to the leaderboard as "${S.savedName}" — change the name above and save again to fix a typo.` : '';
+
+    if (revealAnimated) {
+      $('finalScore').textContent = S.score;
+      $('saveRow').style.opacity = 1;
+      renderBoard();
+      return;
+    }
+    revealAnimated = true;
+    if (g) loadTopForGame(g.id);
+    $('finalScore').textContent = '0';
+    $('saveRow').style.opacity = 0;
+    const prefersStill = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (prefersStill || S.score === 0) {
+      $('finalScore').textContent = S.score;
+      $('saveRow').style.opacity = 1;
+    } else {
+      const dur = 900, t0 = performance.now();
+      const tick = (t) => {
+        const p = Math.min(1, (t - t0) / dur);
+        $('finalScore').textContent = Math.round(S.score * (1 - Math.pow(1 - p, 3))); // ease-out
+        if (p < 1) requestAnimationFrame(tick);
+        else { $('finalScore').textContent = S.score; $('saveRow').style.opacity = 1; }
+      };
+      requestAnimationFrame(tick);
+    }
+    renderBoard();
+  }
+
+  function startRound(i) {
+    const g = game(); if (!g) return;
+    if (i >= roundLength()) { S.phase = 'done'; revealAnimated = false; save(); renderAll(); return; }
+    S.qIndex = Math.max(0, i);
+    S.phase = 'guess1'; S.g1 = null; S.g2 = null; S.verdict = null;
+    save(); renderAll();
+  }
+
+  async function saveScore() {
+    const name = $('saveName').value.trim();
+    if (!name) { FF.toast('Enter a name first', true); return; }
+    if (!FF.sb) { FF.toast('No connection — can\'t save right now', true); return; }
+    const g = game();
+    if (S.phase !== 'done' || !g) { FF.toast('Finish a Question Set before saving a score', true); return; }
+    if (S.saved && S.savedId) {
+      const { error } = await FF.sb.from('ff_highscores').update({ player_name: name }).eq('id', S.savedId);
+      if (error) { FF.toast('Update failed: ' + error.message, true); return; }
+      S.savedName = name; save(); renderFinal();
+      FF.toast('Name updated!');
+      return;
+    }
+    const { data, error } = await FF.sb.from('ff_highscores').insert({
+      player_name: name, mode: 'solo', game_id: g.id, game_name: g.name,
+      score: S.score, correct_count: S.correctCount, question_count: roundLength(),
+    }).select().single();
+    if (error) { FF.toast('Save failed: ' + error.message, true); return; }
+    S.saved = true; S.savedId = data.id; S.savedName = name; save(); renderFinal();
+    FF.toast('Score saved!');
+    loadTopForGame(g.id);
+  }
+
+  let boardCache = [];
+  async function loadBoard() {
+    if (!FF.sb) return;
+    const { data, error } = await FF.sb.from('ff_highscores').select('*').order('score', { ascending:false }).limit(15);
+    if (!error) boardCache = data;
+    renderBoard();
+  }
+  function renderBoard() {
+    const tb = $('boardTable').querySelector('tbody');
+    tb.innerHTML = boardCache.map((r,i) =>
+      `<tr><td class="rank">${i+1}</td><td>${esc(r.player_name)}</td><td>${r.score}</td><td class="muted" style="font-size:.78rem">${esc(r.game_name)}</td></tr>`).join('');
+    $('boardEmpty').hidden = boardCache.length > 0;
+  }
+
+  // ---------- wiring ----------
+  $('gameSelect').addEventListener('change', e => {
+    const newId = e.target.value;
+    if (newId !== S.gameId) {
+      const keepName = S.playerName;
+      S = freshSession();
+      S.playerName = keepName;
+      S.gameId = newId;
+    }
+    save(); renderAll();
+    $('topForGameLive').textContent = '';
+    if (newId) loadTopForGame(newId);
   });
+  $('nextBtn').addEventListener('click', () => startRound(S.qIndex + 1));
+  $('refreshBtn').addEventListener('click', () => sync(true));
+  $('boardRefresh').addEventListener('click', loadBoard);
+  $('saveScoreBtn').addEventListener('click', saveScore);
+  $('resetSessionBtn').addEventListener('click', () => {
+    if (confirm('Restart? Your current score will be lost (unless already saved to the leaderboard).')) {
+      S = freshSession(); save(); renderPickers(); renderAll();
+    }
+  });
+  document.addEventListener('keydown', e => {
+    if (e.target.tagName === 'INPUT') return;
+    if (S.phase === 'reveal' && e.code === 'Space') { e.preventDefault(); startRound(S.qIndex + 1); }
+  });
+
+  renderPickers(); renderAll(); sync(false); loadBoard();
+  if (S.gameId) loadTopForGame(S.gameId);
 })();
 </script>
 </body>
