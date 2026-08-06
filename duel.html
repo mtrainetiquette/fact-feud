@@ -224,7 +224,7 @@
     $('catLabel').textContent = q ? q.ff_categories.name : (g ? g.name : 'Fact Feud');
     $('progress').textContent = g ? `Round ${Math.min(S.qIndex+1, g.questions.length)} of ${g.questions.length}` : '';
     $('prompt').textContent = q ? q.prompt
-      : g ? 'All rounds complete! 🏆 Check the sidebar for the standings.'
+      : g ? 'Questions complete!'
       : 'Choose a Question Set in the dropdown above to begin.';
 
     for (const side of ['L','R']) {
