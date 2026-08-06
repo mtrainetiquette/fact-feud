@@ -39,7 +39,7 @@
       <button data-tab="questions" class="on">Questions</button>
       <button data-tab="categories">Categories</button>
       <button data-tab="topics">Topics</button>
-      <button data-tab="games">Games</button>
+      <button data-tab="games">Question Sets</button>
       <button data-tab="rosters">Rosters</button>
       <button data-tab="suggestions">Suggestions</button>
       <button data-tab="leaderboard">Leaderboard</button>
@@ -111,11 +111,11 @@
     <section class="pane" id="pane-games">
       <div class="grid2">
         <div>
-          <button id="gNew">＋ New game</button>
+          <button id="gNew">＋ New Question Set</button>
           <table class="list" id="gTable"><thead><tr><th>Game</th><th>Rounds</th><th>Topics</th></tr></thead><tbody></tbody></table>
         </div>
         <div class="tile quiet editor" id="gEditor" hidden>
-          <h3 style="margin:.1rem 0">Edit game</h3>
+          <h3 style="margin:.1rem 0">Edit Question Set</h3>
           <label>Name</label><input id="gName" style="width:100%">
           <label>Description</label><textarea id="gDesc"></textarea>
           <label>Topic tags</label><div id="gTopics"></div>
@@ -167,7 +167,7 @@
     <section class="pane" id="pane-settings">
       <div class="tile quiet" style="max-width:30rem">
         <h3 style="margin:.1rem 0">Back up the library</h3>
-        <p class="muted" style="font-size:.85rem">Downloads every topic, category, question, game, and roster as JSON. Do this occasionally — the password gate stops casual edits, not a determined student with devtools.</p>
+        <p class="muted" style="font-size:.85rem">Downloads every topic, category, question, Question Set, and roster as JSON. Do this occasionally — the password gate stops casual edits, not a determined student with devtools.</p>
         <button id="exportBtn">⬇ Export library to JSON</button>
       </div>
       <div class="tile quiet" style="max-width:30rem; margin-top:1rem">
@@ -350,7 +350,7 @@
     $('tTable').querySelector('tbody').innerHTML = D.topics.map(t =>
       `<tr><td>${esc(t.name)}</td><td style="text-align:right"><button class="danger" data-del="${t.id}">Delete</button></td></tr>`).join('');
     $('tTable').querySelectorAll('[data-del]').forEach(b => b.addEventListener('click', async () => {
-      if (!confirm('Delete this topic tag? Games keep their other tags.')) return;
+      if (!confirm('Delete this topic tag? Question Sets keep their other tags.')) return;
       const { error } = await sb.from('ff_topics').delete().eq('id', b.dataset.del);
       if (error) die(error); await loadAll();
     }));
@@ -408,7 +408,7 @@
   $('gNew').addEventListener('click', () => editG(null));
   $('gCancel').addEventListener('click', () => { sel.g = null; $('gEditor').hidden = true; renderG(); });
   $('gSave').addEventListener('click', async () => {
-    const name = $('gName').value.trim(); if (!name) { FF.toast('Name the game', true); return; }
+    const name = $('gName').value.trim(); if (!name) { FF.toast('Name the Question Set', true); return; }
     let gid = sel.g;
     if (gid) {
       const { error } = await sb.from('ff_games').update({ name, description:$('gDesc').value.trim() || null }).eq('id', gid);
@@ -427,11 +427,11 @@
       const { error } = await sb.from('ff_game_questions').insert(gDraft.questionIds.map((q,i) => ({ game_id:gid, question_id:q, sort_order:i+1 })));
       if (error) die(error);
     }
-    FF.toast('Game saved — hit ↻ Sync on the Play page to pick it up');
+    FF.toast('Question Set saved — hit ↻ Sync on the Solo, Team, or Duel page to pick it up');
     sel.g = null; $('gEditor').hidden = true; await loadAll();
   });
   $('gDelete').addEventListener('click', async () => {
-    if (!confirm('Delete this game? The questions themselves stay in the library.')) return;
+    if (!confirm('Delete this Question Set? The questions themselves stay in the library.')) return;
     const { error } = await sb.from('ff_games').delete().eq('id', sel.g);
     if (error) die(error);
     FF.toast('Game deleted'); sel.g = null; $('gEditor').hidden = true; await loadAll();
