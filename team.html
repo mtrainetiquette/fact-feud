@@ -32,7 +32,7 @@
   <div class="ff-topbar">
     <a href="index.html" style="text-decoration:none"><div class="ff-badge small"><span class="line">Fact</span><span class="line">Feud</span></div></a>
     <span class="eyebrow">Team vs Team</span>
-    <select id="gameSelect"><option value="">— choose a game —</option></select>
+    <select id="gameSelect"><option value="">— choose a Question Set —</option></select>
     <span id="offlineFlag">OFFLINE · CACHED</span>
     <span class="spacer"></span>
     <button class="ghost" id="refreshBtn" title="Re-download games & rosters">↻ Sync</button>
@@ -49,7 +49,7 @@
           <span class="eyebrow" id="catLabel">Fact Feud</span>
           <span id="progress"></span>
         </div>
-        <div id="prompt">Choose a game to begin.</div>
+        <div id="prompt">Choose a Question Set in the dropdown above to begin.</div>
 
         <div class="teamscore">
           <div class="team" id="cardA"><div class="tname" id="nameTeamA">Team A</div><div class="tscore" id="scoreTeamA">0</div></div>
@@ -174,7 +174,7 @@
   const pname = side => (S.players[side] && S.players[side].name) || (side === 'L' ? S.teamAName : S.teamBName);
 
   function renderPickers() {
-    $('gameSelect').innerHTML = '<option value="">— choose a game —</option>' +
+    $('gameSelect').innerHTML = '<option value="">— choose a Question Set —</option>' +
       content.games.map(g => `<option value="${g.id}" ${g.id===S.gameId?'selected':''}>${esc(g.name)}</option>`).join('');
   }
 
@@ -184,7 +184,7 @@
     $('progress').textContent = g ? `Round ${Math.min(S.qIndex+1, g.questions.length)} of ${g.questions.length}` : '';
     $('prompt').textContent = q ? q.prompt
       : g ? 'All rounds complete! 🏆 Check the score above.'
-      : 'Choose a game to begin.';
+      : 'Choose a Question Set in the dropdown above to begin.';
     $('nameTeamA').textContent = S.teamAName || 'Team A';
     $('nameTeamB').textContent = S.teamBName || 'Team B';
     $('scoreTeamA').textContent = S.teamPoints.A || 0;
