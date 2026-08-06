@@ -183,7 +183,7 @@
     $('catLabel').textContent = q ? q.ff_categories.name : (g ? g.name : 'Fact Feud');
     $('progress').textContent = g ? `Round ${Math.min(S.qIndex+1, g.questions.length)} of ${g.questions.length}` : '';
     $('prompt').textContent = q ? q.prompt
-      : g ? 'All rounds complete! 🏆 Check the score above.'
+      : g ? 'Questions complete!'
       : 'Choose a Question Set in the dropdown above to begin.';
     $('nameTeamA').textContent = S.teamAName || 'Team A';
     $('nameTeamB').textContent = S.teamBName || 'Team B';
