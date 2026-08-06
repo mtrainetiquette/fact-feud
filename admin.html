@@ -19,10 +19,10 @@
 <body>
 <div class="ff-shell">
   <div class="ff-topbar">
-    <a href="play.html" style="text-decoration:none"><div class="ff-badge small"><span class="line">Fact</span><span class="line">Feud</span></div></a>
+    <a href="index.html" style="text-decoration:none"><div class="ff-badge small"><span class="line">Fact</span><span class="line">Feud</span></div></a>
     <h1 style="margin:0; font-size:1.3rem">Admin</h1>
     <span class="spacer"></span>
-    <a class="btn" href="play.html" style="text-decoration:none">◀ Back to game</a>
+    <a class="btn" href="index.html" style="text-decoration:none">◀ Back to menu</a>
   </div>
 
   <!-- ---------- password gate ---------- -->
@@ -41,6 +41,8 @@
       <button data-tab="topics">Topics</button>
       <button data-tab="games">Games</button>
       <button data-tab="rosters">Rosters</button>
+      <button data-tab="suggestions">Suggestions</button>
+      <button data-tab="leaderboard">Leaderboard</button>
       <button data-tab="settings">Settings</button>
     </nav>
 
@@ -146,6 +148,21 @@
       </div>
     </section>
 
+    <!-- SUGGESTIONS -->
+    <section class="pane" id="pane-suggestions">
+      <p class="muted">Topic suggestions submitted from the title page's "Have a topic we should add?" box.</p>
+      <table class="list" id="sgTable"><thead><tr><th>Suggestion</th><th>From</th><th>Sent</th><th></th></tr></thead><tbody></tbody></table>
+      <p class="muted" id="sgEmpty" style="font-size:.85rem" hidden>No suggestions yet.</p>
+    </section>
+
+    <!-- LEADERBOARD -->
+    <section class="pane" id="pane-leaderboard">
+      <p class="muted">Top Solo-mode scores, saved by students at the end of a game. Session gameplay itself is never stored — only scores students chose to submit.</p>
+      <table class="list" id="hsTable"><thead><tr><th>Name</th><th>Score</th><th>Correct</th><th>Game</th><th>Date</th><th></th></tr></thead><tbody></tbody></table>
+      <p class="muted" id="hsEmpty" style="font-size:.85rem" hidden>No scores saved yet.</p>
+      <button class="danger" id="hsClearAll" style="margin-top:.6rem">Clear entire leaderboard</button>
+    </section>
+
     <!-- SETTINGS -->
     <section class="pane" id="pane-settings">
       <div class="tile quiet" style="max-width:30rem">
@@ -227,22 +244,25 @@
 
   // ================= LOAD =================
   async function loadAll() {
-    const [t,c,q,g,r] = await Promise.all([
+    const [t,c,q,g,r,sg,hs] = await Promise.all([
       sb.from('ff_topics').select('*').order('name'),
       sb.from('ff_categories').select('*').order('sort_order'),
       sb.from('ff_questions').select('*').order('created_at'),
       sb.from('ff_games').select('*, ff_game_topics(topic_id), ff_game_questions(question_id, sort_order)').order('name'),
       sb.from('ff_rosters').select('*, ff_students(id, display_name, sort_order)').order('name'),
+      sb.from('ff_suggestions').select('*').order('created_at', { ascending:false }),
+      sb.from('ff_highscores').select('*').order('score', { ascending:false }).limit(50),
     ]);
-    const err = t.error||c.error||q.error||g.error||r.error;
+    const err = t.error||c.error||q.error||g.error||r.error||sg.error||hs.error;
     if (err) { FF.toast('Load failed: '+err.message, true); return; }
-    D = { topics:t.data, categories:c.data, questions:q.data, games:g.data, rosters:r.data };
+    D = { topics:t.data, categories:c.data, questions:q.data, games:g.data, rosters:r.data,
+          suggestions:sg.data, highscores:hs.data };
     renderAll();
   }
   const catName = id => D.categories.find(c => c.id === id)?.name || '?';
   const qById = id => D.questions.find(q => q.id === id);
 
-  function renderAll(){ renderQ(); renderC(); renderT(); renderG(); renderR(); }
+  function renderAll(){ renderQ(); renderC(); renderT(); renderG(); renderR(); renderSuggestions(); renderHighscores(); }
 
   // ================= QUESTIONS =================
   function renderQ() {
@@ -452,6 +472,48 @@
     const { error } = await sb.from('ff_rosters').delete().eq('id', sel.r);
     if (error) die(error);
     FF.toast('Roster deleted'); sel.r = null; $('rEditor').hidden = true; await loadAll();
+  });
+
+  // ================= SUGGESTIONS =================
+  function renderSuggestions() {
+    const rows = D.suggestions || [];
+    $('sgEmpty').hidden = rows.length > 0;
+    $('sgTable').querySelector('tbody').innerHTML = rows.map(s => `<tr>
+      <td>${esc(s.message)}</td>
+      <td class="muted" style="font-size:.82rem">${esc(s.submitted_name || '—')}</td>
+      <td class="muted" style="font-size:.82rem">${new Date(s.created_at).toLocaleDateString()}</td>
+      <td><button class="ghost" data-sgdel="${s.id}">Delete</button></td>
+    </tr>`).join('');
+    $('sgTable').querySelectorAll('[data-sgdel]').forEach(b => b.addEventListener('click', async () => {
+      const { error } = await sb.from('ff_suggestions').delete().eq('id', b.dataset.sgdel);
+      if (error) die(error);
+      await loadAll();
+    }));
+  }
+
+  // ================= LEADERBOARD =================
+  function renderHighscores() {
+    const rows = D.highscores || [];
+    $('hsEmpty').hidden = rows.length > 0;
+    $('hsTable').querySelector('tbody').innerHTML = rows.map(h => `<tr>
+      <td>${esc(h.player_name)}</td>
+      <td>${h.score}</td>
+      <td>${h.correct_count}/${h.question_count}</td>
+      <td class="muted" style="font-size:.82rem">${esc(h.game_name)}</td>
+      <td class="muted" style="font-size:.82rem">${new Date(h.created_at).toLocaleDateString()}</td>
+      <td><button class="ghost" data-hsdel="${h.id}">Delete</button></td>
+    </tr>`).join('');
+    $('hsTable').querySelectorAll('[data-hsdel]').forEach(b => b.addEventListener('click', async () => {
+      const { error } = await sb.from('ff_highscores').delete().eq('id', b.dataset.hsdel);
+      if (error) die(error);
+      await loadAll();
+    }));
+  }
+  $('hsClearAll').addEventListener('click', async () => {
+    if (!confirm('Delete every saved score on the leaderboard? This can\'t be undone.')) return;
+    const { error } = await sb.from('ff_highscores').delete().neq('player_name', '\0__never__');
+    if (error) die(error);
+    FF.toast('Leaderboard cleared'); await loadAll();
   });
 
   // ================= EXPORT =================
