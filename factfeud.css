@@ -135,3 +135,55 @@ table.list tr:hover td { background:rgba(201,214,238,.07); cursor:pointer; }
   color:#fff; border-radius:99px; padding:.1rem .55rem; margin:.06rem .12rem .06rem 0; }
 .grid2 { display:grid; grid-template-columns:1fr 1fr; gap:1rem; }
 @media (max-width:820px) { .grid2 { grid-template-columns:1fr; } }
+
+/* ---------- Menu / title page ---------- */
+.hero { position:relative; border-radius:20px; overflow:hidden; border:3px solid var(--amber);
+  box-shadow:0 10px 30px rgba(0,0,0,.5); padding:3rem 1.5rem; text-align:center;
+  background-size:cover; background-position:center; }
+.hero::before { content:''; position:absolute; inset:0;
+  background:linear-gradient(180deg, rgba(13,19,48,.55) 0%, rgba(13,19,48,.85) 100%); }
+.hero > * { position:relative; z-index:1; }
+.hero .ff-badge { margin-bottom:.6rem; }
+.hero p.tag { color:var(--white); font-size:1.05rem; max-width:34rem; margin:.6rem auto 0; }
+
+.modes { display:grid; grid-template-columns:repeat(3, 1fr); gap:1rem; margin:1.4rem 0; }
+@media (max-width:900px) { .modes { grid-template-columns:1fr; } }
+.mode-card { display:flex; flex-direction:column; gap:.5rem; text-align:left; }
+.mode-card h3 { margin:0; font-size:1.15rem; }
+.mode-card p { margin:0; font-size:.9rem; color:var(--pale); }
+.mode-card ul { margin:.2rem 0 0; padding-left:1.1rem; font-size:.85rem; color:var(--pale); }
+.mode-card .go { margin-top:auto; text-align:center; text-decoration:none; }
+
+.rules-block { margin-top:.4rem; }
+.rules-block summary { cursor:pointer; font-family:var(--display); font-size:1.1rem; color:var(--white);
+  padding:.5rem 0; }
+.rules-block[open] summary { color:var(--amber); }
+.rules-block .body { padding:.4rem 0 1rem .2rem; font-size:.92rem; }
+.rules-block .body ol, .rules-block .body ul { padding-left:1.3rem; }
+.rules-block .body li { margin-bottom:.35rem; }
+
+.suggest-form textarea { width:100%; }
+.suggest-form .row { margin-top:.6rem; }
+
+/* ---------- Timer / solo mode ---------- */
+.timerwrap { width:100%; max-width:22rem; margin:0 auto; }
+.timerbar { height:10px; border-radius:99px; background:rgba(255,255,255,.12); overflow:hidden; }
+.timerbar > i { display:block; height:100%; background:var(--gold-grad); transition:width .1s linear; }
+.timerlabel { font-family:var(--util); font-size:.75rem; color:var(--soft); text-align:center; margin-top:.2rem; }
+
+/* ---------- Leaderboard ---------- */
+table.board { width:100%; border-collapse:collapse; }
+table.board th { text-align:left; font-family:var(--util); font-size:.68rem; letter-spacing:.1em;
+  text-transform:uppercase; color:var(--amber); padding:.35rem .5rem; border-bottom:2px solid var(--soft); }
+table.board td { padding:.4rem .5rem; border-bottom:1px solid rgba(77,91,140,.35); }
+table.board tr:first-child td { color:var(--amber); font-weight:700; }
+.rank { font-family:var(--display); font-weight:700; }
+
+/* ---------- Team score header ---------- */
+.teamscore { display:flex; gap:1rem; justify-content:center; flex-wrap:wrap; }
+.teamscore .team { text-align:center; padding:.8rem 1.4rem; border-radius:14px;
+  background:var(--tile-grad); border:2px solid var(--soft); min-width:160px; }
+.teamscore .team.hot { border-color:var(--amber); box-shadow:0 0 18px rgba(250,174,28,.4); }
+.teamscore .tname { font-family:var(--display); font-size:1.1rem; color:var(--white); }
+.teamscore .tscore { font-family:var(--display); font-size:2.4rem; font-weight:700;
+  background:var(--gold-grad); -webkit-background-clip:text; background-clip:text; color:transparent; }
