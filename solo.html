@@ -70,7 +70,7 @@
         </div>
 
         <div id="finalWrap" hidden>
-          <h2 style="margin:0">Question Set complete! 🏆</h2>
+          <h2 style="margin:0">Questions complete!</h2>
           <div id="finalScore">0</div>
           <p class="muted" id="finalDetail"></p>
           <div class="row" id="saveRow" style="opacity:0; transition:opacity .5s">
@@ -113,7 +113,7 @@
 
   function freshSession() {
     return { gameId:'', qIndex:0, phase:'idle', g1:null, g2:null, verdict:null,
-             score:0, correctCount:0, startTime:0, saved:false, savedId:null, savedName:'' };
+             score:0, correctCount:0, startTime:0, saved:false, savedId:null, savedName:'', playerName:'' };
   }
   let S = FF.store.get(SESSION_KEY, null) || freshSession();
   { const _f = freshSession(); for (const k in _f) if (!(k in S)) S[k] = _f[k]; }
@@ -172,13 +172,13 @@
       const sec = (Date.now() - S.startTime) / 1000;
       const pts = Math.round(100 * speedFactor(sec));
       S.score += pts; S.correctCount++;
-      S.verdict = { cls:'good', text:`Correct on the first try — +${pts} points!`, pts };
+      S.verdict = { cls:'good', text:`Points scored! +${pts}`, pts };
     } else if (S.g2 !== null) {
       if (S.g2 >= lo && S.g2 <= hi) {
         S.score += 50; S.correctCount++;
-        S.verdict = { cls:'good', text:`Got it on the second try — +50 points.`, pts:50 };
+        S.verdict = { cls:'good', text:`Points scored! +50`, pts:50 };
       } else {
-        S.verdict = { cls:'bad', text:`Not quite either time — +0 points.`, pts:0 };
+        S.verdict = { cls:'bad', text:`No points this time.`, pts:0 };
       }
     }
     S.phase = 'reveal'; save(); renderAll();
@@ -198,9 +198,11 @@
     if (done) { renderFinal(); return; }
 
     $('catLabel').textContent = q ? q.ff_categories.name : (g ? g.name : 'Fact Feud');
-    $('progress').textContent = g ? `Round ${Math.min(S.qIndex+1, g.questions.length)} of ${g.questions.length}` : '';
-    $('prompt').textContent = q ? q.prompt : (g ? '' : 'Choose a Question Set in the dropdown above to begin.');
-    $('scoreStrip').textContent = g ? `Score: ${S.score} · Correct: ${S.correctCount}/${g.questions.length}` : '';
+    $('progress').textContent = g && S.phase !== 'idle' ? `Round ${Math.min(S.qIndex+1, g.questions.length)} of ${g.questions.length}` : '';
+    $('prompt').textContent = q ? q.prompt
+      : g ? "Enter your name and hit Start when you're ready."
+      : 'Choose a Question Set in the dropdown above to begin.';
+    $('scoreStrip').textContent = g && S.phase !== 'idle' ? `Score: ${S.score} · Scored: ${S.correctCount}/${g.questions.length}` : '';
     $('timerWrap').hidden = !(q && S.phase === 'guess1');
 
     const pb = $('phasebox'); pb.innerHTML = '';
@@ -219,7 +221,23 @@
       if (q.teaching_note) $('noteBox').textContent = '💡 ' + q.teaching_note;
     }
 
-    if (q && (S.phase === 'guess1' || S.phase === 'guess2')) {
+    if (g && S.phase === 'idle') {
+      pb.innerHTML = `
+        <div class="row" style="justify-content:center">
+          <input id="playerNameInput" placeholder="Your name" autocomplete="off" style="width:14rem" value="${esc(S.playerName || '')}">
+          <button class="big" id="startBtn">Start ▶</button>
+        </div>`;
+      const nameInp = $('playerNameInput');
+      const go = () => {
+        const name = nameInp.value.trim();
+        if (!name) { FF.toast('Enter your name first', true); return; }
+        S.playerName = name;
+        startRound(0);
+      };
+      $('startBtn').addEventListener('click', go);
+      nameInp.addEventListener('keydown', e => { if (e.key === 'Enter') go(); });
+      if (!S.playerName) nameInp.focus();
+    } else if (q && (S.phase === 'guess1' || S.phase === 'guess2')) {
       const stealNote = S.phase === 'guess2'
         ? `<p class="muted">${FF.fmtVal(S.g1, q.unit)} wasn't close enough. One more try — half credit if you land it.</p>` : '';
       pb.innerHTML = `${stealNote}
@@ -249,7 +267,7 @@
     stopTimer();
     const g = game();
     $('finalDetail').textContent = g ? `${S.correctCount} of ${g.questions.length} correct — ${g.name}` : '';
-    if (!$('saveName').value) $('saveName').value = S.savedName || '';
+    if (!$('saveName').value) $('saveName').value = S.savedName || S.playerName || '';
     $('saveScoreBtn').textContent = S.saved ? 'Update name' : 'Save score';
     $('saveStatus').textContent = S.saved ? `Saved to the leaderboard as "${S.savedName}" — change the name above and save again to fix a typo.` : '';
 
@@ -323,7 +341,16 @@
   }
 
   // ---------- wiring ----------
-  $('gameSelect').addEventListener('change', e => { S.gameId = e.target.value; startRound(0); });
+  $('gameSelect').addEventListener('change', e => {
+    const newId = e.target.value;
+    if (newId !== S.gameId) {
+      const keepName = S.playerName;
+      S = freshSession();
+      S.playerName = keepName;
+      S.gameId = newId;
+    }
+    save(); renderAll();
+  });
   $('nextBtn').addEventListener('click', () => startRound(S.qIndex + 1));
   $('refreshBtn').addEventListener('click', () => sync(true));
   $('boardRefresh').addEventListener('click', loadBoard);
