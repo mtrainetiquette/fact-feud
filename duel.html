@@ -36,7 +36,7 @@
   <div class="ff-topbar">
     <a href="index.html" style="text-decoration:none"><div class="ff-badge small"><span class="line">Fact</span><span class="line">Feud</span></div></a>
     <span class="eyebrow">1v1 Duel</span>
-    <select id="gameSelect"><option value="">— choose a game —</option></select>
+    <select id="gameSelect"><option value="">— choose a Question Set —</option></select>
     <span id="offlineFlag">OFFLINE · CACHED</span>
     <span class="spacer"></span>
     <button class="ghost" id="refreshBtn" title="Re-download games & rosters">↻ Sync</button>
@@ -54,7 +54,7 @@
           <span class="eyebrow" id="catLabel">Fact Feud</span>
           <span id="progress"></span>
         </div>
-        <div id="prompt">Choose a game to begin.</div>
+        <div id="prompt">Choose a Question Set in the dropdown above to begin.</div>
 
         <div id="matchup">
           <div class="player" id="cardL">
@@ -213,7 +213,7 @@
 
   // ---------- render ----------
   function renderPickers() {
-    $('gameSelect').innerHTML = '<option value="">— choose a game —</option>' +
+    $('gameSelect').innerHTML = '<option value="">— choose a Question Set —</option>' +
       content.games.map(g => `<option value="${g.id}" ${g.id===S.gameId?'selected':''}>${esc(g.name)}</option>`).join('');
     $('rosterSelect').innerHTML = '<option value="">— choose roster —</option>' +
       content.rosters.map(r => `<option value="${r.id}" ${r.id===S.rosterId?'selected':''}>${esc(r.name)}</option>`).join('');
@@ -225,7 +225,7 @@
     $('progress').textContent = g ? `Round ${Math.min(S.qIndex+1, g.questions.length)} of ${g.questions.length}` : '';
     $('prompt').textContent = q ? q.prompt
       : g ? 'All rounds complete! 🏆 Check the sidebar for the standings.'
-      : 'Choose a game to begin.';
+      : 'Choose a Question Set in the dropdown above to begin.';
 
     for (const side of ['L','R']) {
       const p = S.players[side];
